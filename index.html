@@ -2,6 +2,7 @@
 <html lang="fa">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Wiretap Activity</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -157,9 +158,40 @@
     color:#222;
     box-shadow:1px 2px 3px rgba(0,0,0,.3);
   }
+
+  /* Shown only on narrow/portrait screens (typically phones held upright).
+     The layout is landscape by design, so we ask for a rotate instead of
+     trying to cram everything into a tall, narrow strip. */
+  #rotateHint {
+    display:none;
+    position:fixed; inset:0;
+    background:#0b1638;
+    color:#fff;
+    z-index:1000;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px;
+    font-family:'Courier New', monospace;
+    gap:16px;
+  }
+  #rotateHint .icon { font-size:3em; animation: rotatePrompt 1.8s ease-in-out infinite; }
+  #rotateHint p { font-size:1.1em; line-height:1.6; max-width:320px; }
+  @keyframes rotatePrompt {
+    0%,100% { transform:rotate(0deg); }
+    50% { transform:rotate(90deg); }
+  }
+  @media (max-width:900px) and (orientation:portrait) {
+    #rotateHint { display:flex; }
+  }
 </style>
 </head>
 <body>
+<div id="rotateHint">
+  <div class="icon">📱</div>
+  <p>این نمایش به‌صورت افقی طراحی شده.<br>لطفاً گوشیت رو بچرخون (Landscape) تا کامل ببینیش.</p>
+</div>
 <div id="screen">
   <div id="app">
     <div class="targetbar">
@@ -326,7 +358,7 @@ function playCallRecording(){
     audioEl.currentTime = 0;
     audioEl.onended = resolve;
     audioEl.onerror = () => {
-      console.error('Could not load call.mp3 — check the filename/path (Linux is case-sensitive) and format.');
+      console.error(`Could not load "${audioEl.src}" — check the filename/path in CALLS (servers are usually case-sensitive) and that the file was actually uploaded.`);
       resolve();
     };
     audioEl.play().catch(err => {
