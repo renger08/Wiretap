@@ -205,11 +205,7 @@
     <div class="flicker"></div>
     <div class="label-tag">EPISODE ONE</div>
   </div>
-  <audio id="callAudio" preload="auto">
-    <source src="call.ogg" type="audio/ogg">
-    <source src="call.mp3" type="audio/mpeg">
-    <source src="call.wav" type="audio/wav">
-  </audio>
+  <audio id="callAudio" preload="auto"></audio>
   <div id="unlockOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.75);color:#fff;
        font-family:sans-serif;display:flex;align-items:center;justify-content:center;
        font-size:1.4em;z-index:999;cursor:pointer;text-align:center;padding:20px;">
@@ -220,9 +216,35 @@
 <script>
 // ---------- Config ----------
 const TARGET_NUMBER = "410.968.1146";
-const INCOMING_NUMBER = "3019992486";
 const LOOP_GAP_MS = 3000;       // idle pause between loops
 const DIAL_STEP_MS = 90;        // speed of digits appearing
+
+// Each entry = one caller ID number + its matching recording.
+// File paths are relative to wiretap.html (served over http://, not file://).
+const CALLS = [
+  { number: "3019992486", file: "call.mp3" },
+  { number: "4105551234", file: "call1.mp3" },
+  { number: "8005551212", file: "call2.mp3" },
+];
+
+// 'random'     -> picks a random call each loop (never repeats the same
+//                 one twice in a row if you have more than one entry)
+// 'sequential' -> cycles through the list in order, looping back to start
+const CALL_ORDER = 'sequential';
+
+let lastCallIndex = -1;
+function pickNextCall(){
+  if (CALLS.length === 1) return CALLS[0];
+  if (CALL_ORDER === 'sequential'){
+    lastCallIndex = (lastCallIndex + 1) % CALLS.length;
+    return CALLS[lastCallIndex];
+  }
+  let idx;
+  do { idx = Math.floor(Math.random() * CALLS.length); }
+  while (idx === lastCallIndex);
+  lastCallIndex = idx;
+  return CALLS[idx];
+}
 
 // ---------- Elements ----------
 const digitsEl = document.getElementById('digits');
@@ -413,10 +435,10 @@ tickClock();
 // ---------- Dialing / loop sequence ----------
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-async function dialDigits(){
+async function dialDigits(number){
   digitsEl.innerHTML = '';
   const spans = [];
-  for (const ch of INCOMING_NUMBER){
+  for (const ch of number){
     const s = document.createElement('span');
     s.textContent = ch;
     s.className = 'ghost';
@@ -438,6 +460,10 @@ async function runLoop(){
     footTime.textContent = '00:00.00';
     await sleep(LOOP_GAP_MS);
 
+    const call = pickNextCall();
+    audioEl.src = call.file;
+    audioEl.load();
+
     footStatus.textContent = 'RINGING';
     lineStatus.textContent = 'Incoming Call...';
     playRingTone();
@@ -446,7 +472,7 @@ async function runLoop(){
     footStatus.textContent = 'CONNECTED — RECORDING';
     lineStatus.textContent = 'Payphone Active';
     elapsedStart = performance.now();
-    await dialDigits();
+    await dialDigits(call.number);
 
     await playCallRecording();
 
