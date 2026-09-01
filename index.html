@@ -205,6 +205,16 @@
     <div class="flicker"></div>
     <div class="label-tag">EPISODE ONE</div>
   </div>
+  <audio id="callAudio" preload="auto">
+    <source src="call.ogg" type="audio/ogg">
+    <source src="call.mp3" type="audio/mpeg">
+    <source src="call.wav" type="audio/wav">
+  </audio>
+  <div id="unlockOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.75);color:#fff;
+       font-family:sans-serif;display:flex;align-items:center;justify-content:center;
+       font-size:1.4em;z-index:999;cursor:pointer;text-align:center;padding:20px;">
+    برای شروع صدا کلیک کن (این پیام فقط توی تست مرورگر معمولی نشون داده میشه)
+  </div>
 </div>
 
 <script>
@@ -223,6 +233,7 @@ const lineStatus = document.getElementById('lineStatus');
 const canvas = document.getElementById('wave');
 const ctx = canvas.getContext('2d');
 const gutter = document.getElementById('gutter');
+const audioEl = document.getElementById('callAudio');
 
 for (let i=8; i>=1; i--){
   const s = document.createElement('span');
@@ -238,8 +249,11 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ---------- Audio (synthesized, no copyrighted material) ----------
-let audioCtx, analyser, dataArray, masterGain;
+// ---------- Audio ----------
+// Ring is synthesized (no external file needed). The call itself plays
+// your own recorded file through callAudio, routed through the analyser
+// so the waveform panel reacts to your real recording.
+let audioCtx, analyser, dataArray, masterGain, fileSource;
 function initAudio(){
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -250,6 +264,27 @@ function initAudio(){
   masterGain.gain.value = 0.0;
   masterGain.connect(analyser);
   analyser.connect(audioCtx.destination);
+
+  // Hook the <audio> element into the same graph so the waveform
+  // reacts to the real recording instead of synthesized noise.
+  fileSource = audioCtx.createMediaElementSource(audioEl);
+  fileSource.connect(masterGain);
+}
+
+function playCallRecording(){
+  return new Promise((resolve) => {
+    masterGain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    audioEl.currentTime = 0;
+    audioEl.onended = resolve;
+    audioEl.onerror = () => {
+      console.error('Could not load call.mp3 — check the filename/path (Linux is case-sensitive) and format.');
+      resolve();
+    };
+    audioEl.play().catch(err => {
+      console.warn('Playback blocked or failed:', err.name, err.message);
+      resolve();
+    });
+  });
 }
 
 function playRingTone(){
@@ -413,9 +448,7 @@ async function runLoop(){
     elapsedStart = performance.now();
     await dialDigits();
 
-    const callDuration = 14; // seconds
-    playCallTone(callDuration);
-    await sleep(callDuration*1000);
+    await playCallRecording();
 
     footStatus.textContent = 'CALL ENDED';
     await sleep(1500);
@@ -423,15 +456,39 @@ async function runLoop(){
 }
 
 // Autostart: browsers require a user gesture for audio, but in kiosk mode
-// on the Pi we auto-unlock on first paint via a silent buffer trick.
-function unlockAudioAutoplay(){
+// on the Pi/desktop (with --autoplay-policy=no-user-gesture-required) we
+// auto-unlock on first paint. As a fallback for normal-browser testing,
+// we also unlock on the first click/keypress anywhere on the page.
+const unlockOverlay = document.getElementById('unlockOverlay');
+let started = false;
+
+function startShow(){
+  if (started) return;
+  started = true;
+  unlockOverlay.style.display = 'none';
   initAudio();
-  audioCtx.resume().catch(()=>{});
+  audioCtx.resume().then(() => {
+    console.log('AudioContext state:', audioCtx.state);
+  }).catch(err => console.warn('resume() failed:', err));
+  runLoop();
 }
 
 window.addEventListener('load', () => {
-  unlockAudioAutoplay();
-  runLoop();
+  // Try to start automatically (works in kiosk mode with the autoplay flag).
+  initAudio();
+  audioCtx.resume().then(() => {
+    if (audioCtx.state === 'running') {
+      unlockOverlay.style.display = 'none';
+      started = true;
+      runLoop();
+    }
+    // If still 'suspended' here, the browser blocked autoplay — the
+    // overlay stays visible and we wait for a real user gesture below.
+  }).catch(() => {});
+});
+
+['click', 'keydown', 'touchstart'].forEach(evt => {
+  window.addEventListener(evt, startShow, { once: true });
 });
 </script>
 </body>
