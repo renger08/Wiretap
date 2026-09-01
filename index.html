@@ -16,21 +16,23 @@
     position:relative;
     width:100vw; height:100vh;
     background: #c9c7bd; /* beige CRT bezel-ish backdrop behind windows */
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    overflow:hidden;
   }
+  /* Fixed design resolution matching the target monitor (1366x768).
+     JS below scales this box to fit whatever window/screen it's shown
+     on, so you never need to manually zoom the browser. */
   #app {
-    position:relative;
-    width:96%;
-    max-width:1100px;
-    aspect-ratio: 4/3;
+    position:absolute;
+    top:50%; left:50%;
+    width:1366px;
+    height:768px;
+    transform-origin:center center;
     background: linear-gradient(180deg,#d9d7cd,#c4c2b8);
     border: 2px solid #7a7a72;
     box-shadow: inset 0 0 4px rgba(0,0,0,.4);
     display:flex;
     flex-direction:column;
-    font-size: 1vw;
+    font-size: 15px;
   }
   /* top target bar */
   .targetbar {
@@ -222,15 +224,15 @@ const DIAL_STEP_MS = 90;        // speed of digits appearing
 // Each entry = one caller ID number + its matching recording.
 // File paths are relative to wiretap.html (served over http://, not file://).
 const CALLS = [
-  { number: "3019992486", file: "call.mp3" },
-  { number: "4105551234", file: "call1.mp3" },
-  { number: "8005551212", file: "call2.mp3" },
+  { number: "3019992486", file: "call1.mp3" },
+  { number: "4105551234", file: "call2.mp3" },
+  { number: "8005551212", file: "call3.mp3" },
 ];
 
 // 'random'     -> picks a random call each loop (never repeats the same
 //                 one twice in a row if you have more than one entry)
 // 'sequential' -> cycles through the list in order, looping back to start
-const CALL_ORDER = 'sequential';
+const CALL_ORDER = 'random';
 
 let lastCallIndex = -1;
 function pickNextCall(){
@@ -270,6 +272,21 @@ function resizeCanvas(){
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// ---------- Auto-fit scaling ----------
+// The design is built at a fixed 1366x768 canvas (matching the target
+// monitor). This scales that fixed box to fit the actual window/screen,
+// so no manual browser zoom is ever needed — on the real kiosk monitor
+// at native 1366x768 this naturally lands on scale = 1.
+const appEl = document.getElementById('app');
+const DESIGN_W = 1366, DESIGN_H = 768;
+function fitToScreen(){
+  const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+  appEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  resizeCanvas();
+}
+window.addEventListener('resize', fitToScreen);
+fitToScreen();
 
 // ---------- Audio ----------
 // Ring is synthesized (no external file needed). The call itself plays
