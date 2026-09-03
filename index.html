@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Wiretap Activity</title>
+<meta name="description" content="شبیه‌سازی نمایشی صفحه‌ی شنود خط تلفن — یک پروپ دکوری الهام‌گرفته از سریال The Wire، با شماره‌گیری زنده، موج‌نگار صوتی و پخش خودکار در لوپ.">
+<meta name="theme-color" content="#0b1a3a">
+<meta property="og:title" content="Wiretap Activity">
+<meta property="og:description" content="شبیه‌سازی نمایشی صفحه‌ی شنود خط تلفن — یک پروپ دکوری الهام‌گرفته از سریال The Wire.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Wiretap Activity">
+<meta name="twitter:description" content="شبیه‌سازی نمایشی صفحه‌ی شنود خط تلفن، الهام‌گرفته از سریال The Wire.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b1a3a'/%3E%3Cpath d='M20 15c-2 0-4 2-4 5 0 14 10 24 24 24 3 0 5-2 5-4l0-6c0-2-1-3-3-3l-6-1c-1 0-2 0-3 1l-2 2c-4-2-7-5-9-9l2-2c1-1 1-2 1-3l-1-6c0-2-1-3-3-3z' fill='%23e8e6df'/%3E%3Ccircle cx='48' cy='16' r='6' fill='%23d9433a'/%3E%3C/svg%3E">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body {
@@ -11,11 +20,12 @@
     background:#000;
     overflow:hidden;
     font-family: 'Courier New', monospace;
-    cursor:none;
   }
   #screen {
     position:relative;
-    width:100vw; height:100vh;
+    width:100vw;
+    height:100vh;      /* fallback for older browsers */
+    height:100dvh;     /* accounts for mobile browser toolbars showing/hiding */
     background: #c9c7bd; /* beige CRT bezel-ish backdrop behind windows */
     overflow:hidden;
   }
@@ -323,11 +333,21 @@ resizeCanvas();
 const appEl = document.getElementById('app');
 const DESIGN_W = 1366, DESIGN_H = 768;
 function fitToScreen(){
-  const scale = Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
+  // visualViewport reflects the actual visible area on mobile (excludes
+  // the browser's address/toolbar), unlike window.innerHeight which can
+  // lag behind or report the wrong value while the toolbar animates.
+  const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
   appEl.style.transform = `translate(-50%, -50%) scale(${scale})`;
   resizeCanvas();
 }
 window.addEventListener('resize', fitToScreen);
+if (window.visualViewport){
+  window.visualViewport.addEventListener('resize', fitToScreen);
+  window.visualViewport.addEventListener('scroll', fitToScreen);
+}
+window.addEventListener('orientationchange', () => setTimeout(fitToScreen, 300));
 fitToScreen();
 
 // ---------- Audio ----------
@@ -547,10 +567,21 @@ async function runLoop(){
 const unlockOverlay = document.getElementById('unlockOverlay');
 let started = false;
 
+function requestFullscreenSafely(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+              el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (req) req.call(el).catch(() => {
+    // Some browsers (notably iOS Safari) reject/ignore this — the page
+    // still works fine, just without a hidden address bar there.
+  });
+}
+
 function startShow(){
   if (started) return;
   started = true;
   unlockOverlay.style.display = 'none';
+  requestFullscreenSafely();
   initAudio();
   audioCtx.resume().then(() => {
     console.log('AudioContext state:', audioCtx.state);
@@ -575,6 +606,9 @@ window.addEventListener('load', () => {
 ['click', 'keydown', 'touchstart'].forEach(evt => {
   window.addEventListener(evt, startShow, { once: true });
 });
+
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
+  .forEach(evt => document.addEventListener(evt, () => setTimeout(fitToScreen, 100)));
 </script>
 </body>
 </html>
