@@ -27,7 +27,7 @@ const CALLS = [
 // 'random'     -> picks a random call each loop (never repeats the same
 //                 one twice in a row if you have more than one entry)
 // 'sequential' -> cycles through the list in order, looping back to start
-const CALL_ORDER = 'sequential';
+const CALL_ORDER = 'random';
 
 let lastCallIndex = -1;
 function pickNextCall(){
@@ -167,7 +167,11 @@ async function runLoop(){
     await sleep(LOOP_GAP_MS);
 
     const call = pickNextCall();
-    audioEl.src = call.file;
+    // audioEl.src = call.file; // for use cached files use this line
+    // Cache-bust: append a unique query string so the browser always
+    // fetches the current file instead of a stale cached copy — handy
+    // while you're actively swapping/updating audio files during dev.
+    audioEl.src = call.file + (call.file.includes('?') ? '&' : '?') + 'v=' + Date.now();
     audioEl.load();
 
     // 1) Dialing: number appears digit-by-digit with touch-tone beeps,
