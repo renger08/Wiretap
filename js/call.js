@@ -14,6 +14,14 @@ const CALLS = [
   { number: "6005552879", file: "../audio/call11.mp3" },
   { number: "4102223967", file: "../audio/call12.mp3" },
   { number: "2307775129", file: "../audio/call13.mp3" },
+  { number: "9354442155", file: "../audio/call14.mp3" },
+  { number: "8804447513", file: "../audio/call15.mp3" },
+  { number: "8745559486", file: "../audio/call16.mp3" },
+  { number: "3125554845", file: "../audio/call17.mp3" },
+  { number: "1205556060", file: "../audio/call18.mp3" },
+  { number: "7204125055", file: "../audio/call19.mp3" },
+  { number: "4516954845", file: "../audio/call20.mp3" },
+  { number: "5487498413", file: "../audio/call21.mp3" },
 ];
 
 // 'random'     -> picks a random call each loop (never repeats the same
