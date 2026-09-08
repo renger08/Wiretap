@@ -3,14 +3,14 @@
     width:100%; height:100%;
     background:#000;
     overflow:hidden;
-    font-family: 'Courier New', monospace;
+    font-family: 'Tahoma', 'Verdana', Arial, sans-serif;
   }
   #screen {
     position:relative;
     width:100vw;
     height:100vh;      /* fallback for older browsers */
     height:100dvh;     /* accounts for mobile browser toolbars showing/hiding */
-    background: #c9c7bd; /* beige CRT bezel-ish backdrop behind windows */
+    background: #4a4a4a; /* dark backdrop behind the "monitor" */
     overflow:hidden;
   }
   /* Fixed design resolution matching the target monitor (1366x768).
@@ -22,56 +22,92 @@
     width:1366px;
     height:768px;
     transform-origin:center center;
-    background: linear-gradient(180deg,#d9d7cd,#c4c2b8);
-    border: 2px solid #7a7a72;
-    box-shadow: inset 0 0 4px rgba(0,0,0,.4);
+    background: linear-gradient(180deg,#f6f5f0,#e9e7dd);
+    border: 2px solid #6b6b63;
+    box-shadow: inset 0 0 4px rgba(0,0,0,.35);
     display:flex;
     flex-direction:column;
     font-size: 15px;
   }
+
+  /* classic XP toolbar strip */
+  .toolbar {
+    display:flex; align-items:center; gap:10px;
+    background: linear-gradient(180deg,#fefefe,#dbe4f2);
+    border-bottom:1px solid #9a9a9a;
+    padding:4px 12px;
+    font-size:1.15em;
+  }
+  .toolbar span {
+    padding:1px 6px;
+    border-radius:3px;
+    filter: grayscale(15%);
+  }
+  .toolbar span.active {
+    background:#cfe0fb;
+    border:1px solid #6c9eea;
+  }
+
   /* top target bar */
   .targetbar {
     display:flex; justify-content:space-between; align-items:center;
-    background:#b9b6ab;
-    border-bottom:1px solid #7a7a72;
-    padding:6px 14px;
-    font-size:1.15em;
+    background:#fdfdfd;
+    border-bottom:1px solid #9a9a9a;
+    padding:8px 14px;
+    font-size:1.35em;
     color:#1a1a1a;
     font-weight:bold;
-    letter-spacing:.5px;
+    letter-spacing:.2px;
   }
-  .targetbar .status { color:#0a5a0a; }
+  .targetbar #targetNumber { color:#a30000; }
+  .targetbar .status { color:#a30000; }
 
   /* fake column header */
   .colhead {
     display:grid;
-    grid-template-columns: 1fr 1fr 1.4fr 1fr .8fr;
-    background:#ccc9be;
+    grid-template-columns: 1fr 1fr 1.4fr 1fr 1fr .8fr;
+    background:#e2e6ee;
     border-bottom:1px solid #9a988d;
     font-size:.6em;
-    color:#555;
+    color:#444;
     padding:2px 10px;
-    letter-spacing:1px;
+    letter-spacing:.5px;
+    font-weight:bold;
   }
   .colhead span:last-child{ text-align:right; }
 
-  .body { flex:1; display:flex; flex-direction:column; padding:10px 12px; gap:10px; }
+  .body { flex:1; display:flex; flex-direction:column; padding:10px 12px; gap:10px; min-height:0; }
 
   .window {
     background:#0b1a3a;
     border:1px solid #050d1f;
-    box-shadow: 0 0 0 1px #4a5a86 inset;
+    box-shadow: 0 0 0 1px #4a5a86 inset, 2px 2px 6px rgba(0,0,0,.35);
     position:relative;
+    border-radius:5px;
+    overflow:hidden;
   }
+  /* Windows XP "Luna" blue title bar */
   .titlebar {
-    background: linear-gradient(180deg,#5878c0,#2c3f7a);
-    color:#fff; font-size:.65em; font-weight:bold;
-    padding:2px 6px; display:flex; justify-content:space-between;
+    background: linear-gradient(180deg,#3f8cf2 0%,#1a5ed6 45%,#0d47b8 100%);
+    color:#fff; font-size:.68em; font-weight:bold;
+    padding:3px 6px; display:flex; justify-content:space-between; align-items:center;
     letter-spacing:.5px;
+    text-shadow: 0 1px 1px rgba(0,0,0,.4);
+    border-bottom:1px solid #08316f;
   }
-  .titlebar .dots span{
-    display:inline-block; width:8px;height:8px; margin-left:3px;
-    background:#c9c7bd; border:1px solid #7a7a72;
+  .win-controls { display:flex; gap:2px; }
+  .win-btn {
+    width:16px; height:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; line-height:1; color:#0a2e6e;
+    background: linear-gradient(180deg,#eaf3ff,#9fc4f5);
+    border:1px solid #5f8fd6;
+    border-radius:2px;
+  }
+  .win-btn.close {
+    color:#fff;
+    background: linear-gradient(180deg,#ff8f7a,#d5301a);
+    border-color:#8f1c0a;
   }
 
   .incoming-row {
@@ -85,31 +121,58 @@
   .digits-panel {
     background:#d7d7d2;
     border-top:1px solid #050d1f;
-    padding:10px 16px;
+    padding:12px 16px;
     text-align:center;
+    box-shadow: inset 1px 1px 0 rgba(0,0,0,.15);
   }
   .digits {
-    font-size:2.6em;
-    letter-spacing:.35em;
+    font-size:2.8em;
+    letter-spacing:.28em;
     color:#111;
     font-weight:bold;
-    font-family:'Courier New', monospace;
+    font-family:'Arial', 'Tahoma', sans-serif;
   }
   .digits .ghost { color:#b7b6b0; }
 
   .wave-window { flex:1; min-height:0; display:flex; flex-direction:column; }
-  .wave-body { flex:1; display:flex; }
+  .wave-body { flex:1; display:flex; background:#000; }
   .wave-gutter {
-    width:26px; background:#0b1a3a; border-left:1px solid #050d1f;
+    width:26px; background:#000; border-left:1px solid #1a1a1a;
     display:flex; flex-direction:column; justify-content:space-around;
-    font-size:.55em; color:#7d90c8; text-align:center; padding:4px 0;
+    font-size:.55em; color:#5d7fc8; text-align:center; padding:4px 0;
   }
   canvas { display:block; width:100%; height:100%; }
 
   .statusbar {
     display:flex; justify-content:space-between;
-    background:#b9b6ab; border-top:1px solid #7a7a72;
-    padding:2px 10px; font-size:.55em; color:#444;
+    background:#e2e6ee; border-top:1px solid #9a9a9a;
+    padding:2px 10px; font-size:.55em; color:#555;
+  }
+
+  /* classic XP taskbar strip along the bottom of the "monitor" */
+  .taskbar {
+    display:flex; align-items:center;
+    background: linear-gradient(180deg,#3f8cf2,#0d47b8);
+    border-top:1px solid #08316f;
+    padding:3px 6px;
+    height:24px;
+  }
+  .start-btn {
+    background: linear-gradient(180deg,#7ed15a,#3f9021);
+    color:#fff; font-weight:bold; font-style:italic;
+    font-size:.65em;
+    padding:2px 14px 2px 10px;
+    border-radius:0 9px 9px 0;
+    border:1px solid #276014;
+    text-shadow:0 1px 1px rgba(0,0,0,.3);
+  }
+  .taskbar-spacer { flex:1; }
+  .taskbar-clock {
+    background:#0d47b8;
+    color:#fff;
+    font-size:.6em;
+    padding:2px 10px;
+    border-left:1px solid #062a70;
   }
 
   /* CRT overlay effects */

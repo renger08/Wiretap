@@ -52,23 +52,33 @@ function formatPhone(num){
 }
 
 // ---------- Waveform rendering ----------
-let scrollX = 0;
+// Styled after the show's real interface: black background, a thin
+// jagged yellow amplitude trace, a smoothed red envelope line riding
+// through it, and a small cluster of green/cyan spectrum bars.
 const history = [];
-const MAX_POINTS = 400;
+const MAX_POINTS = 300;
+let envelopeHistory = [];
 
 function drawWave(){
   requestAnimationFrame(drawWave);
   const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,w,h);
 
-  // grid
-  ctx.strokeStyle = 'rgba(80,110,180,0.25)';
+  // faint blue vertical grid
+  ctx.strokeStyle = 'rgba(60,90,160,0.35)';
   ctx.lineWidth = 1;
-  for (let x=0; x<w; x+=w/20){
+  for (let x=0; x<w; x+=w/24){
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke();
   }
+  // a couple of faint horizontal reference lines
+  ctx.strokeStyle = 'rgba(60,90,160,0.25)';
+  [0.25, 0.5, 0.75].forEach(f=>{
+    ctx.beginPath(); ctx.moveTo(0,h*f); ctx.lineTo(w,h*f); ctx.stroke();
+  });
 
   let level = 0;
+  let freqData = null;
   if (analyser){
     analyser.getByteTimeDomainData(dataArray);
     let sum = 0;
@@ -77,31 +87,53 @@ function drawWave(){
       sum += Math.abs(v);
     }
     level = sum/dataArray.length;
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(freqData);
   }
-  history.push(level);
+  history.push(level + (Math.random()-0.5)*0.04); // tiny idle jitter so it's never dead-flat
   if (history.length > MAX_POINTS) history.shift();
 
-  // draw scrolling amplitude trace (orange, like screenshot)
-  ctx.strokeStyle = '#e08a3c';
-  ctx.lineWidth = 1.5 * devicePixelRatio;
+  // jagged yellow raw trace, scrolling left to right
+  ctx.strokeStyle = '#e8d43a';
+  ctx.lineWidth = 1 * devicePixelRatio;
   ctx.beginPath();
-  const midY = h*0.5;
+  const midY = h*0.42;
   history.forEach((v,i)=>{
     const x = (i/MAX_POINTS)*w;
-    const y = midY - v * h * 3.2 * Math.sin(i*0.7 + performance.now()*0.005);
+    const jitter = Math.sin(i*3.1 + performance.now()*0.02) * 0.5;
+    const y = midY - (v*6 + jitter) * h*0.06;
     if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
   ctx.stroke();
 
-  // fainter cyan secondary trace
-  ctx.strokeStyle = 'rgba(120,200,255,0.6)';
+  // smoothed red envelope line (slow-moving average of the yellow trace)
+  const smoothing = 0.08;
+  const target = midY - level * h*0.22;
+  const lastEnv = envelopeHistory.length ? envelopeHistory[envelopeHistory.length-1] : target;
+  envelopeHistory.push(lastEnv + (target-lastEnv)*smoothing);
+  if (envelopeHistory.length > MAX_POINTS) envelopeHistory.shift();
+  ctx.strokeStyle = '#e03a2e';
+  ctx.lineWidth = 1.8 * devicePixelRatio;
   ctx.beginPath();
-  history.forEach((v,i)=>{
+  envelopeHistory.forEach((y,i)=>{
     const x = (i/MAX_POINTS)*w;
-    const y = midY + v * h * 2.2 * Math.cos(i*0.5 + performance.now()*0.004);
     if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
   ctx.stroke();
+
+  // small green/cyan spectrum bar cluster along the bottom
+  if (freqData){
+    const barCount = 28;
+    const barW = w/70;
+    const startX = w*0.22;
+    for (let i=0;i<barCount;i++){
+      const bin = freqData[i*2] || 0;
+      const barH = (bin/255) * h*0.28;
+      const hue = 150 + (bin/255)*40; // green through cyan
+      ctx.fillStyle = `hsl(${hue}, 80%, 55%)`;
+      ctx.fillRect(startX + i*barW, h - barH, barW*0.8, barH);
+    }
+  }
 }
 drawWave();
 

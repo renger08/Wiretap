@@ -70,6 +70,16 @@ function tickClock(){
 }
 tickClock();
 
+// Taskbar clock (simple real-time HH:MM, updated once a second — no need
+// for the smoother per-frame precision the call timer uses).
+const taskbarClockEl = document.getElementById('taskbarClock');
+function tickTaskbarClock(){
+  const t = new Date();
+  taskbarClockEl.textContent = t.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+}
+tickTaskbarClock();
+setInterval(tickTaskbarClock, 1000);
+
 // Autostart: browsers require a user gesture for audio. In kiosk mode
 // (with --autoplay-policy=no-user-gesture-required) this resolves on its
 // own at load. As a fallback for normal-browser testing, we also unlock
