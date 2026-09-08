@@ -35,6 +35,13 @@ function pickNextCall(){
   return CALLS[idx];
 }
 
+// Formats a 10-digit number as XXX.XXX.XXXX to match the Target bar's
+// original look (e.g. "410.968.1146"). Falls back to the raw string for
+// any number that isn't exactly 10 digits.
+function formatPhone(num){
+  if (num.length === 10) return `${num.slice(0,3)}.${num.slice(3,6)}.${num.slice(6)}`;
+  return num;
+}
 
 // ---------- Waveform rendering ----------
 let scrollX = 0;
@@ -90,7 +97,6 @@ function drawWave(){
 }
 drawWave();
 
-
 // ---------- Dialing / loop sequence ----------
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
@@ -106,6 +112,7 @@ async function dialDigits(number){
   }
   for (let i=0;i<spans.length;i++){
     await sleep(DIAL_STEP_MS);
+    playDTMFTone(spans[i].textContent);
     spans[i].className = '';
   }
 }
@@ -123,16 +130,23 @@ async function runLoop(){
     audioEl.src = call.file;
     audioEl.load();
 
+    // 1) Dialing: number appears digit-by-digit with touch-tone beeps,
+    //    and the Target bar updates to the caller's number right away.
+    footStatus.textContent = 'DIALING';
+    lineStatus.textContent = 'Dialing...';
+    targetNumberEl.textContent = formatPhone(call.number);
+    await dialDigits(call.number);
+
+    // 2) Ring
     footStatus.textContent = 'RINGING';
     lineStatus.textContent = 'Incoming Call...';
     playRingTone();
     await sleep(1800);
 
+    // 3) Connected — play the actual recording
     footStatus.textContent = 'CONNECTED — RECORDING';
     lineStatus.textContent = 'Payphone Active';
     elapsedStart = performance.now();
-    await dialDigits(call.number);
-
     await playCallRecording();
 
     footStatus.textContent = 'CALL ENDED';

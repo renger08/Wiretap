@@ -89,3 +89,28 @@ function playCallTone(durationSec){
   noise.connect(bandpass); bandpass.connect(noiseGain); noiseGain.connect(masterGain);
   noise.start(now); noise.stop(now+durationSec);
 }
+
+// ---------- DTMF dialing tones ----------
+// Standard touch-tone frequency pairs per digit — plays as each digit
+// appears on screen during dialing, before the ring/call audio.
+const DTMF_FREQS = {
+  '1':[697,1209], '2':[697,1336], '3':[697,1477],
+  '4':[770,1209], '5':[770,1336], '6':[770,1477],
+  '7':[852,1209], '8':[852,1336], '9':[852,1477],
+  '0':[941,1336]
+};
+function playDTMFTone(digit, durationSec = 0.08){
+  const freqs = DTMF_FREQS[digit];
+  if (!freqs || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  freqs.forEach(freq => {
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    g.gain.value = 0.18;
+    osc.connect(g); g.connect(masterGain);
+    osc.start(now); osc.stop(now + durationSec);
+  });
+  masterGain.gain.setValueAtTime(0.5, now);
+}

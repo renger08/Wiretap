@@ -10,6 +10,7 @@ const clockEl = document.getElementById('clock');
 const footStatus = document.getElementById('footStatus');
 const footTime = document.getElementById('footTime');
 const lineStatus = document.getElementById('lineStatus');
+const targetNumberEl = document.getElementById('targetNumber');
 const canvas = document.getElementById('wave');
 const ctx = canvas.getContext('2d');
 const gutter = document.getElementById('gutter');
@@ -69,28 +70,20 @@ function tickClock(){
 }
 tickClock();
 
-// Autostart: browsers require a user gesture for audio, but in kiosk mode
-// on the Pi/desktop (with --autoplay-policy=no-user-gesture-required) we
-// auto-unlock on first paint. As a fallback for normal-browser testing,
-// we also unlock on the first click/keypress anywhere on the page.
+// Autostart: browsers require a user gesture for audio. In kiosk mode
+// (with --autoplay-policy=no-user-gesture-required) this resolves on its
+// own at load. As a fallback for normal-browser testing, we also unlock
+// on the first click/keypress/touch anywhere on the page. Both paths
+// funnel through startShow(), which is guarded so the loop only ever
+// starts once — starting it twice was the cause of the "first call gets
+// skipped" bug (two loops racing to pick/play a call at the same time).
 const unlockOverlay = document.getElementById('unlockOverlay');
 let started = false;
-
-function requestFullscreenSafely(){
-  const el = document.documentElement;
-  const req = el.requestFullscreen || el.webkitRequestFullscreen ||
-              el.mozRequestFullScreen || el.msRequestFullscreen;
-  if (req) req.call(el).catch(() => {
-    // Some browsers (notably iOS Safari) reject/ignore this — the page
-    // still works fine, just without a hidden address bar there.
-  });
-}
 
 function startShow(){
   if (started) return;
   started = true;
   unlockOverlay.style.display = 'none';
-  requestFullscreenSafely();
   initAudio();
   audioCtx.resume().then(() => {
     console.log('AudioContext state:', audioCtx.state);
@@ -99,14 +92,9 @@ function startShow(){
 }
 
 window.addEventListener('load', () => {
-  // Try to start automatically (works in kiosk mode with the autoplay flag).
   initAudio();
   audioCtx.resume().then(() => {
-    if (audioCtx.state === 'running') {
-      unlockOverlay.style.display = 'none';
-      started = true;
-      runLoop();
-    }
+    if (audioCtx.state === 'running') startShow();
     // If still 'suspended' here, the browser blocked autoplay — the
     // overlay stays visible and we wait for a real user gesture below.
   }).catch(() => {});
@@ -115,6 +103,3 @@ window.addEventListener('load', () => {
 ['click', 'keydown', 'touchstart'].forEach(evt => {
   window.addEventListener(evt, startShow, { once: true });
 });
-
-['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange']
-  .forEach(evt => document.addEventListener(evt, () => setTimeout(fitToScreen, 100)));
